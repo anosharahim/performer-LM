@@ -1,0 +1,11 @@
+setup.py
+performer/__init__.py
+performer/dataset.py
+performer/model.py
+performer/tokenizer.py
+performer/train.py
+performer.egg-info/PKG-INFO
+performer.egg-info/SOURCES.txt
+performer.egg-info/dependency_links.txt
+performer.egg-info/requires.txt
+performer.egg-info/top_level.txt
