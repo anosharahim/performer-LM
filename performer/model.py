@@ -129,6 +129,8 @@ class FastAttention(nn.Module):
             mask = mask[:, None, :, None].to(device)
             V = V.masked_fill(~mask, 0.)
 
+        Q = Q / np.sqrt(self.head_dim)  # Temperature scaling
+        K = K / np.sqrt(self.head_dim)
         Q_phi = self.positive_random_feature_map(Q, device)
         K_phi = self.positive_random_feature_map(K, device)
 
@@ -140,11 +142,12 @@ class FastAttention(nn.Module):
             KV = torch.matmul(K_phi.transpose(-2,-1), V)
             
         QKV = torch.matmul(Q_phi, KV) 
-
+        
         K_ones = torch.matmul(K_phi.transpose(-2,-1), torch.ones(100, device=device)) 
         K_ones = K_ones.unsqueeze(-1)  
         QK_ones = torch.matmul(Q_phi, K_ones)  
         QK_ones = QK_ones.squeeze(-1) 
+        
         D_inv = 1.0 / QK_ones  
         D_inv = D_inv.unsqueeze(-1) 
         
@@ -156,22 +159,23 @@ class FastAttention(nn.Module):
         return output
 
     def positive_random_feature_map(self, attention_vector, device):
+        scaling_factor = 1.0 / math.sqrt(self.num_random_features)
 
         omega = torch.randn(attention_vector.shape[-1], self.num_random_features, device=device)
-        omega = omega / np.sqrt(attention_vector.shape[-1])     
+        omega = omega / np.sqrt(attention_vector.shape[-1])    
+        # omega = omega / np.sqrt(self.num_random_features)
         omega, _ = torch.qr(omega) 
         
         random_feature_map = torch.matmul(attention_vector, omega)
-        random_feature_map = random_feature_map.clamp(max=30) 
+        random_feature_map = random_feature_map.clamp(max=50) 
         
         l2_norm = torch.norm(attention_vector, p=2, dim=-1, keepdim=True)
-        eps = 1e-6
+        eps = 1e-8
         l2_norm = l2_norm.clamp(min=eps)
         normalization_term = torch.exp(-l2_norm**2 / 2).clamp(min=eps)
         
         result = normalization_term * torch.exp(random_feature_map)
         return result
-
 
 
 class CrossAttention(nn.Module): 
