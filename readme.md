@@ -1,6 +1,6 @@
 # Performer Language Model
 
-A PyTorch implementation of [Performer](https://arxiv.org/abs/2009.14794) for language modeling. Performer wcomputes fast self-attention (linear insteaf of quadratic) by approximating the softmax kernel.
+A PyTorch implementation of [Performer](https://arxiv.org/abs/2009.14794) for language modeling alongside "[Attention is All You Need](https://arxiv.org/abs/1706.03762)". Performer wcomputes fast self-attention (linear insteaf of quadratic) by approximating the softmax kernel.
 
 In this code, I've used a hybrid approach by utilizing Fast Attention Via positive Orthogonal Random features approach (FAVOR+) in the encoder, and using basic (softmax-based) masked self attention & cross attention in the decoder.
 
