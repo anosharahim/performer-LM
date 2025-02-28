@@ -57,8 +57,7 @@ else:
 # Check for existing tokenizer
 if tokenizer_path.exists():
     print("Loading pre-trained tokenizer...")
-    tokenizer = create_tokenizer(vocab_size)[0]
-    tokenizer.from_file(str(tokenizer_path))
+    tokenizer, _ = create_tokenizer(vocab_size, load_path=str(tokenizer_path))
 else:
     print("Training tokenizer...")
     tokenizer, trainer = create_tokenizer(vocab_size)
