@@ -5,6 +5,7 @@ import time
 import json
 from tqdm import tqdm  # for progress bar
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/..')
@@ -12,7 +13,7 @@ sys.path.append(os.getcwd())
 
 from performer.model import Transformer
 from performer.dataset import WikiText103Dataset
-from performer.train import train_model
+from performer.train import train_model, plot_loss
 from performer.tokenizer import create_tokenizer
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -31,7 +32,7 @@ dropout_rate = 0.1
 
 seq_len = 50 # reduce from 100
 batch_size = 16 # reduce from 32
-num_epochs = 1
+num_epochs = 10
 learning_rate = 0.005
 num_samples = 10
 vocab_size = 5000 # reduce from 8000
@@ -76,7 +77,6 @@ data_subset = dataset['train'].select(range(max_samples))
 train_dataset = WikiText103Dataset(data_subset, tokenizer, seq_len)
 dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-# Calculate and print the number of batches
 print(f"Total number of batches: {len(dataloader)}")
 
 model = Transformer(
@@ -91,4 +91,6 @@ model = Transformer(
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size, device)
+loss_history = train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size, device)
+
+plot_loss(loss_history, save_dir='data/loss_graphs')

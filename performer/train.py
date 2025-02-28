@@ -1,8 +1,13 @@
 import torch
+import matplotlib.pyplot as plt
+import os
 
 def train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size, device):
     model.train()
     model.to(device)
+    
+    loss_history = []
+    
     for epoch in range(num_epochs):
         total_loss = 0
         print(f"Epoch {epoch+1} of {num_epochs} running")
@@ -20,4 +25,33 @@ def train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size,
             optimizer.step()
 
             total_loss += loss.item()
-        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {total_loss/len(dataloader):.4f}")
+            
+        avg_loss = total_loss/len(dataloader)
+        loss_history.append(avg_loss)
+        print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
+    
+    return loss_history
+
+def plot_loss(loss_history, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
+    os.makedirs(save_dir, exist_ok=True)
+    
+    save_path = os.path.join(save_dir, filename)
+    
+    if not overwrite and os.path.exists(save_path):
+        base, ext = os.path.splitext(filename)
+        i = 1
+        while os.path.exists(os.path.join(save_dir, f"{base}_{i}{ext}")):
+            i += 1
+        save_path = os.path.join(save_dir, f"{base}_{i}{ext}")
+    
+    plt.figure(figsize=(10, 5))
+    plt.plot(loss_history)
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.title('Training Loss Curve')
+    plt.savefig(save_path)
+    plt.close()
+    print(f"Loss curve saved to {save_path}")
+
+
+
