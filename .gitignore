@@ -10,5 +10,8 @@ __pycache__/
 # PyTorch
 *.pt
 
-
+# Virtual environments
 myenv/
+
+# Data directory
+data/
