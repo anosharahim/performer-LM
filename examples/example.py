@@ -2,7 +2,9 @@ import os
 import sys
 import torch
 import time
+import json
 from tqdm import tqdm  # for progress bar
+from pathlib import Path
 
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)) + '/..')
@@ -19,7 +21,7 @@ device = torch.device(
     "cuda" if torch.cuda.is_available() 
     else "cpu"
 )
-print (f"Using device: {device}")
+print(f"Using device: {device}")
 
 embedding_dim = 128
 num_heads = 8
@@ -32,17 +34,41 @@ batch_size = 32
 num_epochs = 1
 learning_rate = 0.005 #implement lr scheduling
 num_samples = 10
-
-dataset = load_dataset("wikitext", "wikitext-103-v1")
 vocab_size = 8000  # Standard size for many language models, adjust if needed
-tokenizer, trainer = create_tokenizer(vocab_size)
 
-# Train the tokenizer on the dataset
-def get_training_corpus():
-    for i in range(0, len(dataset['train']), num_samples):
-        yield dataset['train'][i:i + num_samples]['text']
+data_dir = Path("./data")
+data_dir.mkdir(exist_ok=True)
 
-tokenizer.train_from_iterator(get_training_corpus(), trainer)
+dataset_cache_path = data_dir / "wikitext103_dataset.pt"
+tokenizer_path = data_dir / "tokenizer.json"
+
+# Dataset caching 
+if dataset_cache_path.exists():
+    print("Loading cached dataset...")
+    dataset = torch.load(dataset_cache_path)
+else:
+    print("Downloading dataset...")
+    dataset = load_dataset("wikitext", "wikitext-103-v1")
+    torch.save(dataset, dataset_cache_path)
+    print("Dataset cached for future use.")
+
+# Check for existing tokenizer
+if tokenizer_path.exists():
+    print("Loading pre-trained tokenizer...")
+    tokenizer = create_tokenizer(vocab_size)[0]
+    tokenizer.from_file(str(tokenizer_path))
+else:
+    print("Training tokenizer...")
+    tokenizer, trainer = create_tokenizer(vocab_size)
+    
+    # train+save tokenizer on dataset
+    def get_training_corpus():
+        for i in range(0, len(dataset['train']), num_samples):
+            yield dataset['train'][i:i + num_samples]['text']
+    
+    tokenizer.train_from_iterator(get_training_corpus(), trainer)
+    tokenizer.save(str(tokenizer_path))
+    print("Tokenizer saved for future use.")
 
 # Get actual vocabulary size after training
 # vocab_size = tokenizer.get_vocab_size()
