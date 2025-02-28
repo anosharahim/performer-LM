@@ -72,12 +72,13 @@ else:
     tokenizer.save(str(tokenizer_path))
     print("Tokenizer saved for future use.")
 
-# Get actual vocabulary size after training
-# vocab_size = tokenizer.get_vocab_size()
-# print(f"Actual vocabulary size after training: {vocab_size}")
-
-train_dataset = WikiText103Dataset(dataset['train'], tokenizer, seq_len)
+print(f"Using a subset of {max_samples} samples for faster training")
+data_subset = dataset['train'].select(range(max_samples))
+train_dataset = WikiText103Dataset(data_subset, tokenizer, seq_len)
 dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+# Calculate and print the number of batches
+print(f"Total number of batches: {len(dataloader)}")
 
 model = Transformer(
     embedding_dim=embedding_dim,
