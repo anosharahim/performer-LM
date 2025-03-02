@@ -2,9 +2,11 @@ import torch
 import matplotlib.pyplot as plt
 import os
 
-def train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size, device):
+def train_model(model, dataloader, criterion, optimizer, num_epochs, device):
     model.train()
     model.to(device)
+    
+    vocab_size = model.linear.out_features
     
     loss_history = []
     

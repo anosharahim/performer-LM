@@ -349,8 +349,6 @@ class Transformer(nn.Module):
             decoder_output = decoder(encoder_output, decoder_output)
 
         output = self.linear(decoder_output)
-        # softmax = nn.Softmax(dim=2)  
-        # output = softmax(output)
         return output
 
     def sin_cos_positional_encoding(self, seq_len, embedding_dim):

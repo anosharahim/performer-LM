@@ -32,12 +32,12 @@ dropout_rate = 0.1
 
 seq_len = 50 # reduce from 100
 batch_size = 16 # reduce from 32
-num_epochs = 20
+num_epochs = 30
 learning_rate = 0.005
 num_samples = 10
-vocab_size = 5000 # reduce from 8000
 
-max_samples = 1000 
+initial_vocab_size = 5000 
+max_samples = 10000 
 
 data_dir = Path("./data")
 data_dir.mkdir(exist_ok=True)
@@ -58,10 +58,10 @@ else:
 # Check for existing tokenizer
 if tokenizer_path.exists():
     print("Loading pre-trained tokenizer...")
-    tokenizer, _ = create_tokenizer(vocab_size, load_path=str(tokenizer_path))
+    tokenizer, _ = create_tokenizer(initial_vocab_size, load_path=str(tokenizer_path))
 else:
     print("Training tokenizer...")
-    tokenizer, trainer = create_tokenizer(vocab_size)
+    tokenizer, trainer = create_tokenizer(initial_vocab_size)
     
     # train+save tokenizer on dataset
     def get_training_corpus():
@@ -71,6 +71,10 @@ else:
     tokenizer.train_from_iterator(get_training_corpus(), trainer)
     tokenizer.save(str(tokenizer_path))
     print("Tokenizer saved for future use.")
+
+# Extract actual vocabulary size from tokenizer
+vocab_size = tokenizer.get_vocab_size()
+print(f"Using vocabulary size: {vocab_size}")
 
 print(f"Using a subset of {max_samples} samples for faster training")
 data_subset = dataset['train'].select(range(max_samples))
@@ -91,6 +95,6 @@ model = Transformer(
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-loss_history = train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size, device)
+loss_history = train_model(model, dataloader, criterion, optimizer, num_epochs, device)
 
 plot_loss(loss_history, save_dir='data/loss_graphs')
