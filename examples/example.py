@@ -32,12 +32,13 @@ dropout_rate = 0.1
 
 seq_len = 50 # reduce from 100
 batch_size = 16 # reduce from 32
-num_epochs = 30
+num_epochs = 50
 learning_rate = 0.005
-num_samples = 10
+num_samples = 500
 
 initial_vocab_size = 5000 
-max_samples = 10000 
+max_samples = 50000 
+print(f"Using a subset of {max_samples} samples from a total of ...")
 
 data_dir = Path("./data")
 data_dir.mkdir(exist_ok=True)
@@ -54,6 +55,10 @@ else:
     dataset = load_dataset("wikitext", "wikitext-103-v1")
     torch.save(dataset, dataset_cache_path)
     print("Dataset cached for future use.")
+
+# Get total number of samples in the training set
+total_samples = len(dataset['train'])
+print(f"Using a subset of {max_samples} samples from a total of {total_samples} samples")
 
 # Check for existing tokenizer
 if tokenizer_path.exists():
