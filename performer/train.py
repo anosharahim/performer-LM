@@ -10,7 +10,7 @@ def train_model(model, dataloader, criterion, optimizer, num_epochs, vocab_size,
     
     for epoch in range(num_epochs):
         total_loss = 0
-        print(f"Epoch {epoch+1} of {num_epochs} running")
+        
         for batch_source, batch_target in dataloader:
             batch_source, batch_target = batch_source.to(device), batch_target.to(device)
 

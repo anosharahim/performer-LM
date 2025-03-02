@@ -32,7 +32,7 @@ dropout_rate = 0.1
 
 seq_len = 50 # reduce from 100
 batch_size = 16 # reduce from 32
-num_epochs = 10
+num_epochs = 20
 learning_rate = 0.005
 num_samples = 10
 vocab_size = 5000 # reduce from 8000
