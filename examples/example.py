@@ -13,7 +13,7 @@ sys.path.append(os.getcwd())
 
 from performer.model import Transformer
 from performer.dataset import WikiText103Dataset
-from performer.train import train_model, plot_loss
+from performer.train import train_model, plot_loss, plot_lr
 from performer.tokenizer import create_tokenizer
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -32,12 +32,12 @@ dropout_rate = 0.1
 
 seq_len = 50 # reduce from 100
 batch_size = 16 # reduce from 32
-num_epochs = 50
+num_epochs = 30
 learning_rate = 0.005
 num_samples = 500
 
 initial_vocab_size = 5000 
-max_samples = 50000 
+max_samples = 10000 
 print(f"Using a subset of {max_samples} samples from a total of ...")
 
 data_dir = Path("./data")
@@ -100,6 +100,7 @@ model = Transformer(
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
-loss_history = train_model(model, dataloader, criterion, optimizer, num_epochs, device)
+loss_history, lr_history = train_model(model, dataloader, criterion, optimizer, num_epochs=num_epochs, device=device)
 
-plot_loss(loss_history, save_dir='data/loss_graphs')
+plot_loss(loss_history)
+plot_lr(lr_history)
