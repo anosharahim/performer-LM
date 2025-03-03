@@ -1,6 +1,8 @@
 import torch
 import matplotlib.pyplot as plt
 import os
+import time
+from datetime import timedelta
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 
 def evaluate_model(model, dataloader, criterion, device):
@@ -34,6 +36,9 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
     train_loss_history = []
     val_loss_history = []
     lr_history = []
+    
+    # Initialize timing variables
+    start_time = time.time()
     
     if use_lr_scheduler:
         def warmup_fn(epoch):
@@ -88,10 +93,16 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
         else:
             print("")
     
+    # Calculate total training time
+    total_time = time.time() - start_time
+    total_time_str = str(timedelta(seconds=int(total_time)))
+    print(f"\nTraining completed in {total_time_str}")
+    
     result = {
         'train_loss': train_loss_history,
         'val_loss': val_loss_history if val_dataloader else None,
-        'lr': lr_history if use_lr_scheduler else None
+        'lr': lr_history if use_lr_scheduler else None,
+        'total_time': total_time
     }
     
     return result
