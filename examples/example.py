@@ -28,7 +28,7 @@ embedding_dim = 64 # reduce from 128
 num_heads = 4 # reduce from 8
 ff_dim = embedding_dim * 4
 num_layers = 2 # reduce from 6
-dropout_rate = 0.3
+dropout_rate = 0.2
 
 seq_len = 50 # reduce from 100
 batch_size = 16 # reduce from 32
@@ -37,7 +37,7 @@ learning_rate = 0.005
 num_samples = 500
 
 initial_vocab_size = 5000 
-max_samples = 50000 
+max_samples = 80000 
 val_split = 0.1 
 print(f"Using a subset of {max_samples} samples from a total of ...")
 
@@ -46,6 +46,7 @@ data_dir.mkdir(exist_ok=True)
 
 dataset_cache_path = data_dir / "wikitext103_dataset.pt"
 tokenizer_path = data_dir / "tokenizer.json"
+model_save_path = data_dir / "trained_model.pt"  # Path to save the model
 
 # Dataset caching 
 if dataset_cache_path.exists():
@@ -111,7 +112,7 @@ model = Transformer(
 ).to(device)
 
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 training_results = train_model(
     model, 
@@ -127,6 +128,7 @@ training_results = train_model(
 train_loss_history = training_results['train_loss']
 val_loss_history = training_results['val_loss']
 lr_history = training_results['lr']
+total_time = training_results['total_time']
 
 # Plot losses with both training and validation
 plot_loss(train_loss_history, val_loss_history)
@@ -135,6 +137,7 @@ plot_lr(lr_history)
 # Print final losses
 print(f"Final training loss: {train_loss_history[-1]:.4f}")
 print(f"Final validation loss: {val_loss_history[-1]:.4f}")
+print(f"Total training time: {total_time:.2f} seconds")
 
 # Check for overfitting
 if val_loss_history[-1] > train_loss_history[-1] * 1.1:  # 10% higher validation loss indicates overfitting
@@ -144,3 +147,25 @@ if val_loss_history[-1] > train_loss_history[-1] * 1.1:  # 10% higher validation
         if val_loss_history[epoch] > val_loss_history[epoch-1] and train_loss_history[epoch] < train_loss_history[epoch-1]:
             print(f"Overfitting likely began around epoch {epoch+1}")
             break
+
+# Save the trained model
+print(f"Saving trained model to {model_save_path}...")
+torch.save(model.state_dict(), model_save_path)
+print(f"Model saved successfully!")
+
+# Save model configuration for future reference
+model_config = {
+    "embedding_dim": embedding_dim,
+    "num_heads": num_heads,
+    "ff_dim": ff_dim, 
+    "dropout_rate": dropout_rate,
+    "num_layers": num_layers,
+    "vocab_size": vocab_size,
+}
+config_path = data_dir / "model_config.json"
+with open(config_path, 'w') as f:
+    json.dump(model_config, f, indent=4)
+print(f"Model configuration saved to {config_path}")
+
+print("\nTo run inference with this model, use the following command:")
+print(f"python examples/inference_example.py --model_path={model_save_path} --tokenizer_path={tokenizer_path}")
