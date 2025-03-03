@@ -3,14 +3,36 @@ import matplotlib.pyplot as plt
 import os
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 
-def train_model(model, dataloader, criterion, optimizer, num_epochs, device, 
-                use_lr_scheduler=True, warmup_epochs=5, cosine_T_max=None, cosine_eta_min=1e-6):
+def evaluate_model(model, dataloader, criterion, device):
+    model.eval()
+    total_loss = 0
+    
+    with torch.no_grad():
+        for batch_source, batch_target in dataloader:
+            batch_source, batch_target = batch_source.to(device), batch_target.to(device)
+            
+            vocab_size = model.linear.out_features
+            output = model(batch_source, batch_target[:, :-1])
+            output = output.reshape(-1, vocab_size)
+            target = batch_target[:, 1:].reshape(-1)
+            loss = criterion(output, target)
+            
+            total_loss += loss.item()
+    
+    avg_loss = total_loss / len(dataloader)
+    model.train()
+    return avg_loss
+
+def train_model(model, train_dataloader, criterion, optimizer, num_epochs, device, 
+                val_dataloader=None, use_lr_scheduler=True, warmup_epochs=5, 
+                cosine_T_max=None, cosine_eta_min=1e-6):
     model.train()
     model.to(device)
     
     vocab_size = model.linear.out_features
     
-    loss_history = []
+    train_loss_history = []
+    val_loss_history = []
     lr_history = []
     
     if use_lr_scheduler:
@@ -27,7 +49,7 @@ def train_model(model, dataloader, criterion, optimizer, num_epochs, device,
     for epoch in range(num_epochs):
         total_loss = 0
         
-        for batch_source, batch_target in dataloader:
+        for batch_source, batch_target in train_dataloader:
             batch_source, batch_target = batch_source.to(device), batch_target.to(device)
 
             optimizer.zero_grad()
@@ -50,17 +72,31 @@ def train_model(model, dataloader, criterion, optimizer, num_epochs, device,
             
             lr_history.append(optimizer.param_groups[0]['lr'])
             
-        avg_loss = total_loss/len(dataloader)
-        loss_history.append(avg_loss)
+        avg_train_loss = total_loss/len(train_dataloader)
+        train_loss_history.append(avg_train_loss)
         
-        if use_lr_scheduler:
-            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
+        # Evaluate on validation data if provided
+        if val_dataloader is not None:
+            val_loss = evaluate_model(model, val_dataloader, criterion, device)
+            val_loss_history.append(val_loss)
+            print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}", end="")
         else:
-            print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
+            print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}", end="")
+            
+        if use_lr_scheduler:
+            print(f", LR: {optimizer.param_groups[0]['lr']:.6f}")
+        else:
+            print("")
     
-    return loss_history, lr_history if use_lr_scheduler else loss_history
+    result = {
+        'train_loss': train_loss_history,
+        'val_loss': val_loss_history if val_dataloader else None,
+        'lr': lr_history if use_lr_scheduler else None
+    }
+    
+    return result
 
-def plot_loss(loss_history, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
+def plot_loss(loss_history, val_loss_history=None, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
     """
     Plot and save the loss curve
     """
@@ -76,10 +112,15 @@ def plot_loss(loss_history, save_dir='data/loss_graphs', filename='loss_curve.pn
         save_path = os.path.join(save_dir, f"{base}_{i}{ext}")
     
     plt.figure(figsize=(10, 5))
-    plt.plot(loss_history)
+    plt.plot(loss_history, label='Training Loss')
+    
+    if val_loss_history is not None:
+        plt.plot(val_loss_history, label='Validation Loss')
+        plt.legend()
+    
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
-    plt.title('Training Loss Curve')
+    plt.title('Loss Curves')
     plt.savefig(save_path)
     plt.close()
     print(f"Loss curve saved to {save_path}")
