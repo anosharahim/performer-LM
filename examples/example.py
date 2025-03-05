@@ -134,9 +134,7 @@ val_loss_history = training_results['val_loss']
 lr_history = training_results['lr']
 total_time = training_results['total_time']
 
-# Plot losses with both training and validation
-plot_loss(train_loss_history, val_loss_history)
-plot_lr(lr_history)
+plot_loss(train_loss_history, val_loss_history, val_ppl_history)
 
 # Print final losses
 print(f"Final training loss: {train_loss_history[-1]:.4f}")

@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 def evaluate_model(model, dataloader, criterion, device):
     '''
     Evaluates the model on the validation set during training runs.
+    Returns the average loss and perplexity.
     '''
     model.eval() 
     total_loss = 0
@@ -25,8 +26,9 @@ def evaluate_model(model, dataloader, criterion, device):
             total_loss += loss.item()
     
     avg_loss = total_loss / len(dataloader)
+    perplexity = torch.exp(torch.tensor(avg_loss)).item()
     model.train() #reset to training mode
-    return avg_loss
+    return avg_loss, perplexity
 
 def train_model(model, train_dataloader, criterion, optimizer, num_epochs, device, 
                 val_dataloader=None, use_lr_scheduler=True, warmup_epochs=10, 
@@ -42,6 +44,7 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
     
     train_loss_history = []
     val_loss_history = []
+    val_ppl_history = []
     lr_history = []
     
     start_time = time.time()
@@ -87,9 +90,10 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
         
         # Evaluate on validation data if provided
         if val_dataloader is not None:
-            val_loss = evaluate_model(model, val_dataloader, criterion, device)
+            val_loss, val_ppl = evaluate_model(model, val_dataloader, criterion, device)
             val_loss_history.append(val_loss)
-            print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}", end="")
+            val_ppl_history.append(val_ppl)
+            print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}, Val Loss: {val_loss:.4f}, Val PPL: {val_ppl:.2f}", end="")
         else:
             print(f"Epoch [{epoch+1}/{num_epochs}], Train Loss: {avg_train_loss:.4f}", end="")
             
@@ -105,13 +109,14 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
     result = {
         'train_loss': train_loss_history,
         'val_loss': val_loss_history if val_dataloader else None,
+        'val_ppl': val_ppl_history if val_dataloader else None,
         'lr': lr_history if use_lr_scheduler else None,
         'total_time': total_time
     }
     
     return result
 
-def plot_loss(loss_history, val_loss_history=None, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
+def plot_loss(loss_history, val_loss_history=None, val_ppl_history=None, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
     """
     Plot and save the loss curves for training and validation.
     """
@@ -126,18 +131,39 @@ def plot_loss(loss_history, val_loss_history=None, save_dir='data/loss_graphs', 
             i += 1
         save_path = os.path.join(save_dir, f"{base}_{i}{ext}")
     
+    # Plot loss
     plt.figure(figsize=(10, 5))
     plt.plot(loss_history, label='Training Loss')
     
     if val_loss_history is not None:
         plt.plot(val_loss_history, label='Validation Loss')
-        plt.legend()
     
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.title('Loss Curves')
+    plt.legend()
     plt.savefig(save_path)
     plt.close()
     print(f"Loss curve saved to {save_path}")
+    
+    # Plot perplexity if available
+    if val_ppl_history is not None:
+        ppl_path = os.path.join(save_dir, 'perplexity_curve.png')
+        if not overwrite and os.path.exists(ppl_path):
+            base, ext = os.path.splitext('perplexity_curve.png')
+            i = 1
+            while os.path.exists(os.path.join(save_dir, f"{base}_{i}{ext}")):
+                i += 1
+            ppl_path = os.path.join(save_dir, f"{base}_{i}{ext}")
+            
+        plt.figure(figsize=(10, 5))
+        plt.plot(val_ppl_history, label='Validation Perplexity', color='green')
+        plt.xlabel('Epochs')
+        plt.ylabel('Perplexity')
+        plt.title('Perplexity Curve')
+        plt.legend()
+        plt.savefig(ppl_path)
+        plt.close()
+        print(f"Perplexity curve saved to {ppl_path}")
 
 
