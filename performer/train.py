@@ -6,10 +6,13 @@ from datetime import timedelta
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 
 def evaluate_model(model, dataloader, criterion, device):
-    model.eval()
+    '''
+    Evaluates the model on the validation set during training runs.
+    '''
+    model.eval() 
     total_loss = 0
     
-    with torch.no_grad():
+    with torch.no_grad(): #disables gradient calculation
         for batch_source, batch_target in dataloader:
             batch_source, batch_target = batch_source.to(device), batch_target.to(device)
             
@@ -22,12 +25,16 @@ def evaluate_model(model, dataloader, criterion, device):
             total_loss += loss.item()
     
     avg_loss = total_loss / len(dataloader)
-    model.train()
+    model.train() #reset to training mode
     return avg_loss
 
 def train_model(model, train_dataloader, criterion, optimizer, num_epochs, device, 
-                val_dataloader=None, use_lr_scheduler=True, warmup_epochs=5, 
+                val_dataloader=None, use_lr_scheduler=True, warmup_epochs=10, 
                 cosine_T_max=None, cosine_eta_min=1e-6):
+    '''
+    Handles the training loop.
+    '''
+
     model.train()
     model.to(device)
     
@@ -37,18 +44,16 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
     val_loss_history = []
     lr_history = []
     
-    # Initialize timing variables
     start_time = time.time()
     
     if use_lr_scheduler:
-        def warmup_fn(epoch):
+        # Implements a learning rate scheduler with warmup and cosine annealing.
+        def warmup_fn(epoch): 
             return min(1.0, epoch / warmup_epochs)
-        
         warmup_scheduler = LambdaLR(optimizer, warmup_fn)
         
         if cosine_T_max is None:
-            cosine_T_max = num_epochs - warmup_epochs
-        
+            cosine_T_max = num_epochs - warmup_epochs 
         cosine_scheduler = CosineAnnealingLR(optimizer, T_max=cosine_T_max, eta_min=cosine_eta_min)
     
     for epoch in range(num_epochs):
@@ -93,7 +98,6 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
         else:
             print("")
     
-    # Calculate total training time
     total_time = time.time() - start_time
     total_time_str = str(timedelta(seconds=int(total_time)))
     print(f"\nTraining completed in {total_time_str}")
@@ -109,7 +113,7 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
 
 def plot_loss(loss_history, val_loss_history=None, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
     """
-    Plot and save the loss curve
+    Plot and save the loss curves for training and validation.
     """
     os.makedirs(save_dir, exist_ok=True)
     
@@ -135,30 +139,5 @@ def plot_loss(loss_history, val_loss_history=None, save_dir='data/loss_graphs', 
     plt.savefig(save_path)
     plt.close()
     print(f"Loss curve saved to {save_path}")
-
-def plot_lr(lr_history, save_dir='data/lr_graphs', filename='lr_curve.png', overwrite=False):
-    """
-    Plot and save the learning rate curve
-    """
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-        
-    full_path = os.path.join(save_dir, filename)
-    
-    if os.path.exists(full_path) and not overwrite:
-        print(f"File {full_path} already exists. Skipping plot.")
-        return
-    
-    plt.figure(figsize=(10, 6))
-    plt.plot(lr_history, 'b-')
-    plt.xlabel('Epochs')
-    plt.ylabel('Learning Rate')
-    plt.title('Learning Rate Scheduler')
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(full_path)
-    plt.close()
-    print(f"Learning rate curve saved to {full_path}")
-
 
 
