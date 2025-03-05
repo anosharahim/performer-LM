@@ -95,7 +95,7 @@ class FastAttention(nn.Module):
         self.embedding_dim = embedding_dim
         self.num_heads = num_heads
         self.head_dim = embedding_dim//num_heads
-        self.num_random_features = num_random_features 
+        self.num_random_features = int(num_random_features) 
 
         assert self.num_random_features <= self.head_dim
 
@@ -143,7 +143,7 @@ class FastAttention(nn.Module):
             
         QKV = torch.matmul(Q_phi, KV) 
         
-        K_ones = torch.matmul(K_phi.transpose(-2,-1), torch.ones(100, device=device)) 
+        K_ones = torch.matmul(K_phi.transpose(-2,-1), torch.ones(seq_len, device=device)) 
         K_ones = K_ones.unsqueeze(-1)  
         QK_ones = torch.matmul(Q_phi, K_ones)  
         QK_ones = QK_ones.squeeze(-1) 
@@ -164,7 +164,7 @@ class FastAttention(nn.Module):
         omega = torch.randn(attention_vector.shape[-1], self.num_random_features, device=device)
         omega = omega / np.sqrt(attention_vector.shape[-1])    
         # omega = omega / np.sqrt(self.num_random_features)
-        omega, _ = torch.qr(omega) 
+        omega, _ = torch.linalg.qr(omega, 'reduced') 
         
         random_feature_map = torch.matmul(attention_vector, omega)
         random_feature_map = random_feature_map.clamp(max=50) 

@@ -108,11 +108,15 @@ model = Transformer(
     ff_dim=ff_dim,
     dropout_rate=dropout_rate,
     num_layers=num_layers,
-    vocab_size=vocab_size
-).to(device)
+    vocab_size=vocab_size,
+    encoder_attention_type='fast_attention',
+    num_random_features=embedding_dim / num_heads,
+).to(device) 
+
+print(f"Model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 training_results = train_model(
     model, 
@@ -139,10 +143,10 @@ print(f"Final training loss: {train_loss_history[-1]:.4f}")
 print(f"Final validation loss: {val_loss_history[-1]:.4f}")
 print(f"Total training time: {total_time:.2f} seconds")
 
-# Check for overfitting
+# Check for overfitting: Calculate where validation loss starts diverging from training loss
 if val_loss_history[-1] > train_loss_history[-1] * 1.1:  # 10% higher validation loss indicates overfitting
     print("Warning: Model may be overfitting (validation loss > training loss).")
-    # Calculate where validation loss starts diverging from training loss
+    
     for epoch in range(1, len(val_loss_history)):
         if val_loss_history[epoch] > val_loss_history[epoch-1] and train_loss_history[epoch] < train_loss_history[epoch-1]:
             print(f"Overfitting likely began around epoch {epoch+1}")
