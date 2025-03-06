@@ -11,9 +11,11 @@ __pycache__/
 *.pt
 
 performer-env/
+myenv/
 
 # Data directory
 data/trained_model.pt
 data/wikitext103_dataset.pt
 
 checkpoints/
+data/tokenizer.json
