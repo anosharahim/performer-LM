@@ -38,7 +38,7 @@ learning_rate = 0.0008
 weight_decay = 1e-2  
 num_samples = 500
 
-initial_vocab_size = 10000  
+initial_vocab_size = 30000  
 max_samples = 10000
 val_split = 0.2
 print(f"Using a subset of {max_samples} samples from a total of ...")
@@ -169,8 +169,8 @@ model = Transformer(
     dropout_rate=dropout_rate,
     num_layers=num_layers,
     vocab_size=vocab_size,
-    encoder_attention_type='fast_attention',
-    num_random_features=embedding_dim / num_heads,
+    # encoder_attention_type='fast_attention',
+    # num_random_features=embedding_dim / num_heads,
 ).to(device) 
 
 print(f"Model parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
@@ -229,6 +229,3 @@ config_path = data_dir / "model_config.json"
 with open(config_path, 'w') as f:
     json.dump(model_config, f, indent=4)
 print(f"Model configuration saved to {config_path}")
-
-print("\nTo run inference with this model, use the following command:")
-print(f"python examples/inference_example.py --model_path={model_save_path} --tokenizer_path={tokenizer_path}")

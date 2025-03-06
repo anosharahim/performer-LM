@@ -1,0 +1,6 @@
+{
+    "test_loss": 0.8726056539823138,
+    "test_perplexity": 2.3931384086608887,
+    "test_samples": 2000,
+    "test_start_idx": 15000
+}
