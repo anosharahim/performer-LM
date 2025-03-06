@@ -2,6 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import os
 import time
+import json
 from datetime import timedelta
 from torch.optim.lr_scheduler import LambdaLR, CosineAnnealingLR
 
@@ -116,9 +117,60 @@ def train_model(model, train_dataloader, criterion, optimizer, num_epochs, devic
     
     return result
 
-def plot_loss(loss_history, val_loss_history=None, val_ppl_history=None, save_dir='data/loss_graphs', filename='loss_curve.png', overwrite=False):
+def save_loss_history(loss_data, save_dir='data/loss_histories', filename='loss_history.json', overwrite=False):
+    """
+    Save the loss history data to a JSON file for later access and plotting.
+    
+    Args:
+        loss_data (dict): Dictionary containing loss histories
+        save_dir (str): Directory to save the loss history file
+        filename (str): Name of the JSON file
+        overwrite (bool): Whether to overwrite existing files
+        
+    Returns:
+        str: Path to the saved file
+    """
+    os.makedirs(save_dir, exist_ok=True)
+    
+    save_path = os.path.join(save_dir, filename)
+    
+    if not overwrite and os.path.exists(save_path):
+        base, ext = os.path.splitext(filename)
+        i = 1
+        while os.path.exists(os.path.join(save_dir, f"{base}_{i}{ext}")):
+            i += 1
+        save_path = os.path.join(save_dir, f"{base}_{i}{ext}")
+    
+    # Convert data to serializable format (convert numpy arrays or tensors to lists)
+    serializable_data = {}
+    for key, value in loss_data.items():
+        if value is not None:
+            if isinstance(value, (list, tuple)):
+                serializable_data[key] = [float(v) if hasattr(v, 'item') else v for v in value]
+            elif hasattr(value, 'item'):  # For single tensor values
+                serializable_data[key] = float(value)
+            else:
+                serializable_data[key] = value
+    
+    with open(save_path, 'w') as f:
+        json.dump(serializable_data, f, indent=4)
+    
+    print(f"Loss history data saved to {save_path}")
+    return save_path
+
+def plot_loss(loss_history, val_loss_history=None, val_ppl_history=None, save_dir='data/loss_graphs', 
+              filename='loss_curve.png', overwrite=False, save_history=False):
     """
     Plot and save the loss curves for training and validation.
+    
+    Args:
+        loss_history (list): History of training loss values
+        val_loss_history (list, optional): History of validation loss values
+        val_ppl_history (list, optional): History of validation perplexity values
+        save_dir (str): Directory to save the plots
+        filename (str): Filename for the loss curve plot
+        overwrite (bool): Whether to overwrite existing files
+        save_history (bool): Whether to save the loss history data to a JSON file
     """
     os.makedirs(save_dir, exist_ok=True)
     
@@ -165,5 +217,15 @@ def plot_loss(loss_history, val_loss_history=None, val_ppl_history=None, save_di
         plt.savefig(ppl_path)
         plt.close()
         print(f"Perplexity curve saved to {ppl_path}")
+    
+    # Save history data if requested
+    if save_history:
+        loss_data = {
+            'train_loss': loss_history,
+            'val_loss': val_loss_history,
+            'val_ppl': val_ppl_history
+        }
+        history_filename = os.path.splitext(filename)[0] + '_data.json'
+        save_loss_history(loss_data, save_dir, history_filename, overwrite)
 
 
